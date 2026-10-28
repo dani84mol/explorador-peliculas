@@ -1,9 +1,11 @@
 import { useMovieContext } from '../context/MovieContext';
 
 export default function MovieCard({ movie }) {
+  // Consumo del estado global de favoritos desde el Custom Hook del Contexto
   const { isFavorite, addToFavorites, removeFromFavorites } = useMovieContext();
   const favorite = isFavorite(movie.id);
 
+  // Manejador del clic en el botón de favoritos
   const onFavoriteClick = (e) => {
     e.preventDefault();
     if (favorite) {
@@ -13,10 +15,12 @@ export default function MovieCard({ movie }) {
     }
   };
 
+  // Construcción de la URL de la imagen de póster de TMDb o fallback en caso de no existir
   const posterUrl = movie.poster_path
     ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
     : 'https://via.placeholder.com/500x750?text=Sin+Imagen';
 
+  // Extracción del año a partir del formato de fecha ISO 'YYYY-MM-DD'
   const releaseYear = movie.release_date
     ? movie.release_date.split('-')[0]
     : 'Desconocido';
@@ -24,6 +28,7 @@ export default function MovieCard({ movie }) {
   return (
     <div className="movie-card">
       <div className="movie-poster">
+        {/* Atributo loading="lazy" para optimizar el rendimiento de la carga diferida de imágenes */}
         <img src={posterUrl} alt={movie.title} loading="lazy" />
         <div className="movie-overlay">
           <button

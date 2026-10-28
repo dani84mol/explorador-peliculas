@@ -3,22 +3,23 @@ import MovieCard from '../components/MovieCard';
 import { getFilteredMovies, searchMovies, getGenres } from '../services/api';
 
 export default function Home() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeQuery, setActiveQuery] = useState('');
-  const [movies, setMovies] = useState([]);
-  
-  // Estados para filtros y orden
+  // Estados para controlar los formularios de entrada de texto
+  const [searchQuery, setSearchQuery] = useState('');   // Valor en tiempo real del input
+  const [activeQuery, setActiveQuery] = useState('');   // Búsqueda confirmada tras hacer submit
+  const [movies, setMovies] = useState([]);             // Catálogo de películas devueltas por la API
+
+  // Estados para filtros desplegables y orden
   const [genres, setGenres] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState('');
   const [sortBy, setSortBy] = useState('popularity.desc');
-  
-  // Paginación y control de carga
+
+  // Estados de control de interfaz, carga y paginación
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Cargar lista de géneros al montar el componente
+  // EFECTO 1: Carga la lista inicial de géneros una sola vez (array de dependencias vacío [])
   useEffect(() => {
     const loadGenres = async () => {
       try {
@@ -31,15 +32,17 @@ export default function Home() {
     loadGenres();
   }, []);
 
-  // Cargar películas según búsqueda o filtros activos
+  // EFECTO 2: Petición principal de películas. Se reejecuta ante cambios de página, texto de búsqueda o filtros
   useEffect(() => {
     const fetchMovies = async () => {
       setLoading(true);
       try {
         let data;
+        // Si hay una búsqueda por texto activa, se prioriza el endpoint de búsqueda
         if (activeQuery.trim()) {
           data = await searchMovies(activeQuery, page);
         } else {
+          // Si no, se hace uso de la consulta con filtros (género y ordenamiento)
           data = await getFilteredMovies({ genreId: selectedGenre, sortBy, page });
         }
         setMovies(data.results);
@@ -48,28 +51,32 @@ export default function Home() {
       } catch (err) {
         setError('Error al obtener el catálogo de películas.');
       } finally {
-        setLoading(false);
+        setLoading(false); // Garantiza quitar el indicador de carga tanto si fue exitoso como si falló
       }
     };
 
     fetchMovies();
+    // Desplazamiento suave hacia arriba al cambiar de página o filtro
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [page, activeQuery, selectedGenre, sortBy]);
 
+  // Manejador del envío del formulario de búsqueda
   const handleSearch = (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Evita la recarga de página nativa del navegador
     setActiveQuery(searchQuery.trim());
-    setSelectedGenre(''); // Limpia género al buscar por texto
-    setPage(1);
+    setSelectedGenre(''); // Limpia el género seleccionado para evitar conflictos en las consultas
+    setPage(1); // Reinicia a la primera página de resultados
   };
 
+  // Manejador del cambio de género
   const handleGenreChange = (e) => {
     setSelectedGenre(e.target.value);
-    setActiveQuery(''); // Vuelve al modo filtros al elegir género
+    setActiveQuery(''); // Abandona el modo de búsqueda por texto
     setSearchQuery('');
     setPage(1);
   };
 
+  // Manejador del cambio de orden
   const handleSortChange = (e) => {
     setSortBy(e.target.value);
     setPage(1);
@@ -77,6 +84,7 @@ export default function Home() {
 
   return (
     <div className="home">
+      {/* Formulario de búsqueda por texto */}
       <form onSubmit={handleSearch} className="search-form">
         <input
           type="text"
@@ -88,7 +96,7 @@ export default function Home() {
         <button type="submit" className="search-btn">Buscar</button>
       </form>
 
-      {/* Barra de Filtros */}
+      {/* Barra de Filtros y Criterios de Ordenación */}
       <div className="filters-bar">
         <div className="filter-group">
           <label htmlFor="genre-select">Género:</label>
@@ -97,7 +105,7 @@ export default function Home() {
             className="filter-select"
             value={selectedGenre}
             onChange={handleGenreChange}
-            disabled={Boolean(activeQuery)}
+            disabled={Boolean(activeQuery)} // Se deshabilita si hay una búsqueda por texto activa
           >
             <option value="">Todos los géneros</option>
             {genres.map((g) => (
@@ -122,6 +130,7 @@ export default function Home() {
           </select>
         </div>
 
+        {/* Botón opcional para limpiar la búsqueda por texto activa */}
         {activeQuery && (
           <button
             type="button"
@@ -137,6 +146,7 @@ export default function Home() {
         )}
       </div>
 
+      {/* Renderizado condicional según estados de Error, Carga o Resultados */}
       {error && <div className="error-message">{error}</div>}
 
       {loading ? (
@@ -150,12 +160,14 @@ export default function Home() {
             </div>
           ) : (
             <div className="movies-grid">
+              {/* Mapeo de la lista de películas a componentes MovieCard */}
               {movies.map((movie) => (
                 <MovieCard movie={movie} key={movie.id} />
               ))}
             </div>
           )}
 
+          {/* Control de Paginación */}
           {totalPages > 1 && (
             <div className="pagination">
               <button
